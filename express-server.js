@@ -65,10 +65,16 @@ app.get("/hello", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
+  // console.log(req.body);  // Log the POST request body to the console
   const shortKey = generateRandomString();
   urlDatabase[shortKey] = req.body.longURL
   res.redirect(`/urls/${shortKey}`)
+});
+
+app.post("/urls/:id/delete", (req, res) => {
+  const shortKey = req.params.id;
+  delete urlDatabase[shortKey];
+  res.redirect(`/urls/`)
 });
 
 app.listen(PORT, () => {
