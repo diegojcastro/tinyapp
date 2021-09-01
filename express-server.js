@@ -43,6 +43,13 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+app.get("/register", (req, res) => {
+  const templateVars = {
+    username: req.cookies["username"]
+  };
+  res.render("registration", templateVars);
+});
+
 app.get("/urls", (req, res) => {
   const templateVars = {
     username: req.cookies["username"],
