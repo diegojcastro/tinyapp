@@ -30,10 +30,32 @@ const generateRandomString = () => {
   return output.join('');
 };
 
+const userExistsInDatabase = (email, db) => {
+  for (let userId in db) {
+    if (db[userId].email === email) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
+
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -93,6 +115,28 @@ app.post("/logout", (req, res) => {
   res.redirect(`/urls/`)
 });
 
+app.post("/register", (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (userExistsInDatabase(email, users)) {
+    console.log(`User ${email} already exists!`);
+    return res.redirect('/register');
+  }
+
+  const id = generateRandomString();
+
+  const newUser = {
+    id,
+    email,
+    password
+  }
+
+  users[id] = newUser;
+  res.cookie('username', email);
+  res.redirect(`/urls/`)
+});
+
 app.post("/urls", (req, res) => {
   // console.log(req.body);  // Log the POST request body to the console
   const shortKey = generateRandomString();
@@ -105,6 +149,7 @@ app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[shortKey];
   res.redirect(`/urls/`)
 });
+
 
 app.post("/urls/:id", (req, res) => {
   const shortKey = req.params.id;

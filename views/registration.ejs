@@ -17,18 +17,17 @@
 
     <main style="margin: 1em;">
       <h3>Register:</h3>
-      <form>
+      <form action="/register" method="POST">
         <div class="form-group">
-          <label>@</label>
-          <br>
-          <input class="col-sm-3 my-1" class="form-control" placeholder='x-men.ca'>
+          <label for="registration-email">E-mail:</label>
+          <input id="registration-email" class="form-control" placeholder='name@domain.com' name="email">
+          <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
         </div>
         <div class="form-group">
-          <label>There is no spoon</label>
-          <br>
-          <input class="col-sm-3 my-1" class="form-control" placeholder='...just use a straw'>
+          <label for="registration-password">Password</label>
+          <input type="password" class="form-control" id="registration-password" placeholder="Password" name="password">
         </div>
-        <button class="btn btn-primary">Logan</button>
+        <button type="submit" btn btn-primary">Register</button>
       </form>
     </main>
       <!-- Bootstrap JS -->
