@@ -30,10 +30,10 @@ const generateRandomString = () => {
   return output.join('');
 };
 
-const userExistsInDatabase = (email, db) => {
+const getUserFromDatabase = (email, db) => {
   for (let userId in db) {
     if (db[userId].email === email) {
-      return true;
+      return db[userId];
     }
   }
   return false;
@@ -65,16 +65,23 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+  res.render("login", templateVars);
+});
+
 app.get("/register", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("registration", templateVars);
 });
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
   res.render('urls_index', templateVars);
@@ -82,14 +89,14 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL]
   };
@@ -106,12 +113,30 @@ app.get("/hello", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
+  const email = req.body.email;
+  const password = req.body.password;
+
+  if (email === '' || password === '') {
+    res.status(400);
+    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
+  }
+  const user = getUserFromDatabase(email, users);
+  if (!user) {
+    console.log(users);
+    res.status(403);
+    return res.send(`<html><body>User <b>${email}</b> does not exist.</body></html>\n`);
+  }
+  if (user.password !== password) {
+    res.status(403);
+    return res.send('<html><body>Invalid password.</body></html>\n');
+  }
+
+  res.cookie('user_id', user.id);
   res.redirect(`/urls/`)
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect(`/urls/`)
 });
 
@@ -119,21 +144,27 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  if (userExistsInDatabase(email, users)) {
-    console.log(`User ${email} already exists!`);
-    return res.redirect('/register');
+  if (email === '' || password === '') {
+    res.status(400);
+    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
   }
 
+  if (getUserFromDatabase(email, users)) {
+    console.log(`User ${email} already exists!`);
+    res.status(400);
+    return res.send(`<html><body>Email <b>${email}</b> has already been registered.</body></html>\n`);
+  }
+  // console.log('from POST /register, user not found in database.');
   const id = generateRandomString();
-
   const newUser = {
     id,
     email,
     password
   }
-
   users[id] = newUser;
-  res.cookie('username', email);
+  // console.log(users);
+  // console.log(`should have added ${newUser}`)
+  res.cookie('user_id', newUser.id);
   res.redirect(`/urls/`)
 });
 
