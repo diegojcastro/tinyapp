@@ -4,9 +4,7 @@ const cookieSession = require('cookie-session')
 const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
-// Example bcrypt usage:
-// const password = "purple-monkey-dinosaur"; // found in the req.params object
-// const hashedPassword = bcrypt.hashSync(password, 10);
+const { getUserByEmail } = require('./helpers');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
@@ -39,15 +37,6 @@ const generateRandomString = () => {
   }
   return output.join('');
 };
-
-const getUserByEmail = (email, db) => {
-  for (let userId in db) {
-    if (db[userId].email === email) {
-      return db[userId];
-    }
-  }
-  return false;
-}
 
 const urlsForUserId = (matchID, db) => {
   const matchedUrls = {};
