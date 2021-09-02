@@ -79,7 +79,10 @@ const users = {
 }
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id && users[req.session.user_id]) {
+    return res.redirect('/urls/');
+  }
+  res.redirect('/login');
 });
 
 app.get("/urls.json", (req, res) => {
@@ -129,10 +132,23 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  if (!req.session.user_id || !users[req.session.user_id]) {
+    res.status(400);
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+  }
+  if (!urlDatabase[shortURL]) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+  }
+  if (urlDatabase[shortURL].userID !== req.session.user_id) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+  }
   const templateVars = {
     user: users[req.session.user_id],
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL].longURL
+    shortURL: shortURL,
+    longURL: urlDatabase[shortURL].longURL
   };
   res.render("urls_show", templateVars);
 });
