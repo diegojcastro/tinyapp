@@ -60,6 +60,8 @@ const urlsForUserId = (matchID, db) => {
 //   "9sm5xK": "http://www.google.com"
 // };
 
+
+
 const urlDatabase = {
   b6UTxQ: {
       longURL: "https://www.tsn.ca",
@@ -71,16 +73,13 @@ const urlDatabase = {
   }
 };
 
+// Placeholder hashed password for our example user:
+const tempPassword = bcrypt.hashSync("purple", 10);
 const users = { 
-  "userRandomID": {
-    id: "userRandomID", 
+  "aJ48lW": {
+    id: "aJ48lW", 
     email: "user@example.com", 
-    password: "purple-monkey-dinosaur"
-  },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
-    password: "dishwasher-funk"
+    password: tempPassword
   }
 }
 
@@ -170,7 +169,7 @@ app.post("/login", (req, res) => {
     res.status(403);
     return res.send(`<html><body>User <b>${email}</b> does not exist.</body></html>\n`);
   }
-  if (user.password !== password) {
+  if (!bcrypt.compareSync(password, user.password)) {
     res.status(403);
     return res.send('<html><body>Invalid password.</body></html>\n');
   }
@@ -200,10 +199,11 @@ app.post("/register", (req, res) => {
   }
   // console.log('from POST /register, user not found in database.');
   const id = generateRandomString();
+  const hashPass = bcrypt.hashSync(password, 10);
   const newUser = {
     id,
     email,
-    password
+    password: hashPass
   }
   users[id] = newUser;
   // console.log(users);
