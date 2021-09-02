@@ -4,7 +4,7 @@ const cookieSession = require('cookie-session')
 const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
-const { getUserByEmail } = require('./helpers');
+const { getUserByEmail, generateRandomString, urlsForUserId } = require('./helpers');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieSession({
@@ -15,46 +15,6 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }))
 app.set("view engine", "ejs");
-
-const generateRandomString = () => {
-  let output = [];
-  // We want it to always be 6 digits long, arbitrarily chosen.
-  for (let i = 0; i < 6; i++) {
-    // Generates new alphanumeric case-sensitive char
-    const newChar = Math.floor(Math.random() * 62);
-    let finalIndex;
-    if (newChar < 10) {
-      // 0-9 start at index 48
-      finalIndex = newChar + 48;
-    } else if (newChar < 36) {
-      // A-Z start at index 65, subtracting 11 gives 55
-      finalIndex = newChar + 55;
-    } else {
-      // a-z start at index 97, subtracting 36 gives 61
-      finalIndex = newChar + 61;
-    }
-    output.push(String.fromCharCode(finalIndex));
-  }
-  return output.join('');
-};
-
-const urlsForUserId = (matchID, db) => {
-  const matchedUrls = {};
-  for (let id in db) {
-    const { longURL, userID } = db[id];
-    if (userID === matchID) {
-      matchedUrls[id] = { longURL, userID };
-    }
-  }
-
-  return matchedUrls;
-}
-
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
-
 
 
 const urlDatabase = {
@@ -78,6 +38,7 @@ const users = {
   }
 }
 
+// GET routes
 app.get("/", (req, res) => {
   if (req.session.user_id && users[req.session.user_id]) {
     return res.redirect('/urls/');
@@ -111,9 +72,6 @@ app.get("/register", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const matchedUrls = urlsForUserId(req.session.user_id, urlDatabase);
-  // console.log(urlDatabase);
-  // console.log(matchedUrls);
-  // console.log(`Should have printed the matched urls to ${req.cookies['user_id']} above.`)
   const templateVars = {
     user: users[req.session.user_id],
     urls: matchedUrls
@@ -133,7 +91,8 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
-  if (!req.session.user_id || !users[req.session.user_id]) {
+  const id = req.session.user_id;
+  if (!id || !users[id]) {
     res.status(400);
     return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
   }
@@ -141,12 +100,12 @@ app.get("/urls/:shortURL", (req, res) => {
     res.status(400);
     return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
   }
-  if (urlDatabase[shortURL].userID !== req.session.user_id) {
+  if (urlDatabase[shortURL].userID !== id) {
     res.status(400);
     return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
   }
   const templateVars = {
-    user: users[req.session.user_id],
+    user: users[id],
     shortURL: shortURL,
     longURL: urlDatabase[shortURL].longURL
   };
@@ -166,6 +125,8 @@ app.get("/hello", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
+
+// POST Routes
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -176,7 +137,6 @@ app.post("/login", (req, res) => {
   }
   const user = getUserByEmail(email, users);
   if (!user) {
-    console.log(users);
     res.status(403);
     return res.send(`<html><body>User <b>${email}</b> does not exist.</body></html>\n`);
   }
@@ -186,13 +146,11 @@ app.post("/login", (req, res) => {
   }
 
   req.session.user_id = user.id;
-  // res.cookie('user_id', user.id); // Old cookie-parser code before changes to cookie-session
   res.redirect(`/urls/`)
 });
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  // res.clearCookie('user_id'); // from cookie-parser, before changing to cookie-session
   res.redirect(`/urls/`)
 });
 
@@ -206,11 +164,9 @@ app.post("/register", (req, res) => {
   }
 
   if (getUserByEmail(email, users)) {
-    console.log(`User ${email} already exists!`);
     res.status(400);
     return res.send(`<html><body>Email <b>${email}</b> has already been registered.</body></html>\n`);
   }
-  // console.log('from POST /register, user not found in database.');
   const id = generateRandomString();
   const hashPass = bcrypt.hashSync(password, 10);
   const newUser = {
@@ -219,14 +175,15 @@ app.post("/register", (req, res) => {
     password: hashPass
   }
   users[id] = newUser;
-  // console.log(users);
-  // console.log(`should have added ${newUser}`)
   req.session.user_id = newUser.id;
   res.redirect(`/urls/`)
 });
 
 app.post("/urls", (req, res) => {
-  // console.log(req.body);  // Log the POST request body to the console
+  if (!req.session.user_id || !users[req.session.user_id]) {
+    res.status(400);
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+  }
   const shortKey = generateRandomString();
   urlDatabase[shortKey] = {
     userID: req.session.user_id,
@@ -236,26 +193,46 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  if (req.session.user_id === urlDatabase[req.params.id].userID) {
-    const shortKey = req.params.id;
-    delete urlDatabase[shortKey];
-    res.redirect(`/urls/`)
-  } else {
-    res.status(403);
-    return res.send(`<html><body>You are not the owner of the <b>${req.params.id}</b> URL.</body></html>\n`);
+  const shortURL = req.params.id
+  if (!req.session.user_id || !users[req.session.user_id]) {
+    res.status(400);
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
   }
+  if (!urlDatabase[shortURL]) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+  }
+  if (urlDatabase[shortURL].userID !== req.session.user_id) {
+    res.status(403);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+  }
+  if (req.session.user_id === urlDatabase[shortURL].userID) {
+    delete urlDatabase[shortURL];
+    res.redirect(`/urls/`);
+  } 
 });
 
 
 app.post("/urls/:id", (req, res) => {
-  if (req.session.user_id === urlDatabase[req.params.id].userID) {
-    const shortKey = req.params.id;
-    urlDatabase[shortKey].longURL = req.body.longURL;
-    res.redirect(`/urls/`)
-  } else {
-    res.status(403);
-    return res.send(`<html><body>You are not the owner of the <b>${req.params.id}</b> URL.</body></html>\n`);
+  const shortURL = req.params.id;
+  const id = req.session.user_id;
+  if (!id || !users[id]) {
+    res.status(400);
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
   }
+  if (!urlDatabase[shortURL]) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+  }
+  if (urlDatabase[shortURL].userID !== id) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+  }
+  
+  if (id === urlDatabase[shortURL].userID) {
+    urlDatabase[shortURL].longURL = req.body.longURL;
+    res.redirect(`/urls/`)
+  } 
 });
 
 app.listen(PORT, () => {
