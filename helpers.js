@@ -15,7 +15,6 @@ const urlsForUserId = (matchID, db) => {
       matchedUrls[id] = { longURL, userID };
     }
   }
-
   return matchedUrls;
 }
 

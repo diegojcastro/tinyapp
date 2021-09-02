@@ -1,6 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const cookieSession = require('cookie-session')
+const cookieSession = require('cookie-session');
 const app = express();
 const PORT = 8080; // default port 8080
 const bcrypt = require('bcryptjs');
@@ -13,30 +13,30 @@ app.use(cookieSession({
 
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}))
+}));
 app.set("view engine", "ejs");
 
 
 const urlDatabase = {
   b6UTxQ: {
-      longURL: "https://www.tsn.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
   },
   i3BoGr: {
-      longURL: "https://www.google.ca",
-      userID: "aJ48lW"
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
   }
 };
 
 // Placeholder hashed password for our example user:
 const tempPassword = bcrypt.hashSync("purple", 10);
-const users = { 
+const users = {
   "aJ48lW": {
-    id: "aJ48lW", 
-    email: "user@example.com", 
+    id: "aJ48lW",
+    email: "user@example.com",
     password: tempPassword
   }
-}
+};
 
 // GET routes
 app.get("/", (req, res) => {
@@ -71,6 +71,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  // Display only URLs that belong to this user.
   const matchedUrls = urlsForUserId(req.session.user_id, urlDatabase);
   const templateVars = {
     user: users[req.session.user_id],
@@ -94,7 +95,7 @@ app.get("/urls/:shortURL", (req, res) => {
   const id = req.session.user_id;
   if (!id || !users[id]) {
     res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
     res.status(400);
@@ -133,7 +134,7 @@ app.post("/login", (req, res) => {
 
   if (email === '' || password === '') {
     res.status(400);
-    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
+    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n");
   }
   const user = getUserByEmail(email, users);
   if (!user) {
@@ -146,12 +147,12 @@ app.post("/login", (req, res) => {
   }
 
   req.session.user_id = user.id;
-  res.redirect(`/urls/`)
+  res.redirect(`/urls/`);
 });
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect(`/urls/`)
+  res.redirect(`/urls/`);
 });
 
 app.post("/register", (req, res) => {
@@ -160,7 +161,7 @@ app.post("/register", (req, res) => {
 
   if (email === '' || password === '') {
     res.status(400);
-    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
+    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n");
   }
 
   if (getUserByEmail(email, users)) {
@@ -173,30 +174,30 @@ app.post("/register", (req, res) => {
     id,
     email,
     password: hashPass
-  }
+  };
   users[id] = newUser;
   req.session.user_id = newUser.id;
-  res.redirect(`/urls/`)
+  res.redirect(`/urls/`);
 });
 
 app.post("/urls", (req, res) => {
   if (!req.session.user_id || !users[req.session.user_id]) {
     res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   const shortKey = generateRandomString();
   urlDatabase[shortKey] = {
     userID: req.session.user_id,
     longURL: req.body.longURL
   };
-  res.redirect(`/urls/${shortKey}`)
+  res.redirect(`/urls/${shortKey}`);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const shortURL = req.params.id
+  const shortURL = req.params.id;
   if (!req.session.user_id || !users[req.session.user_id]) {
     res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
     res.status(400);
@@ -209,16 +210,15 @@ app.post("/urls/:id/delete", (req, res) => {
   if (req.session.user_id === urlDatabase[shortURL].userID) {
     delete urlDatabase[shortURL];
     res.redirect(`/urls/`);
-  } 
+  }
 });
-
 
 app.post("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
   const id = req.session.user_id;
   if (!id || !users[id]) {
     res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);;
+    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
     res.status(400);
@@ -231,8 +231,8 @@ app.post("/urls/:id", (req, res) => {
   
   if (id === urlDatabase[shortURL].userID) {
     urlDatabase[shortURL].longURL = req.body.longURL;
-    res.redirect(`/urls/`)
-  } 
+    res.redirect(`/urls/`);
+  }
 });
 
 app.listen(PORT, () => {
