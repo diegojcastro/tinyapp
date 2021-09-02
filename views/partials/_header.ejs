@@ -12,7 +12,7 @@
     </div>
     <% if(user){ %>
       <form class="form-inline" action="/logout" method="POST">
-        <span class="nav-item nav-link">Logged in as: <%= user.email %>!</span>
+        <span class="nav-item nav-link" style="color:white">Logged in as: <%= user.email %>!</span>
         <button type="submit" class="btn btn-primary">Logout</button>
       </form>
       <% } else{ %>  

@@ -39,6 +39,18 @@ const getUserFromDatabase = (email, db) => {
   return false;
 }
 
+const urlsForUserId = (matchID, db) => {
+  const matchedUrls = {};
+  for (let id in db) {
+    const { longURL, userID } = db[id];
+    if (userID === matchID) {
+      matchedUrls[id] = { longURL, userID };
+    }
+  }
+
+  return matchedUrls;
+}
+
 // const urlDatabase = {
 //   "b2xVn2": "http://www.lighthouselabs.ca",
 //   "9sm5xK": "http://www.google.com"
@@ -97,9 +109,13 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  const matchedUrls = urlsForUserId(req.cookies['user_id'], urlDatabase);
+  // console.log(urlDatabase);
+  // console.log(matchedUrls);
+  // console.log(`Should have printed the matched urls to ${req.cookies['user_id']} above.`)
   const templateVars = {
     user: users[req.cookies["user_id"]],
-    urls: urlDatabase
+    urls: matchedUrls
   };
   res.render('urls_index', templateVars);
 });
@@ -124,6 +140,10 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
+  if (!urlDatabase[req.params.shortURL]) {
+    res.status(400);
+    return res.send(`<html><body>URL <b>${req.params.shortURL}</b> does not exist in URL database.</body></html>\n`);
+  }
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
 });
@@ -199,16 +219,26 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
-  const shortKey = req.params.id;
-  delete urlDatabase[shortKey];
-  res.redirect(`/urls/`)
+  if (req.cookies['user_id'] === urlDatabase[req.params.id].userID) {
+    const shortKey = req.params.id;
+    delete urlDatabase[shortKey];
+    res.redirect(`/urls/`)
+  } else {
+    res.status(403);
+    return res.send(`<html><body>You are not the owner of the <b>${req.params.id}</b> URL.</body></html>\n`);
+  }
 });
 
 
 app.post("/urls/:id", (req, res) => {
-  const shortKey = req.params.id;
-  urlDatabase[shortKey].longURL = req.body.longURL;
-  res.redirect(`/urls/`)
+  if (req.cookies['user_id'] === urlDatabase[req.params.id].userID) {
+    const shortKey = req.params.id;
+    urlDatabase[shortKey].longURL = req.body.longURL;
+    res.redirect(`/urls/`)
+  } else {
+    res.status(403);
+    return res.send(`<html><body>You are not the owner of the <b>${req.params.id}</b> URL.</body></html>\n`);
+  }
 });
 
 app.listen(PORT, () => {
