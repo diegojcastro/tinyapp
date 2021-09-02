@@ -98,12 +98,10 @@ app.get("/urls/:shortURL", (req, res) => {
     return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
   }
   if (urlDatabase[shortURL].userID !== id) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
   }
   const templateVars = {
     user: users[id],
@@ -115,8 +113,7 @@ app.get("/urls/:shortURL", (req, res) => {
 
 app.get("/u/:shortURL", (req, res) => {
   if (!urlDatabase[req.params.shortURL]) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${req.params.shortURL}</b> does not exist in URL database.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${req.params.shortURL}</b> does not exist in URL database.</body></html>\n`);
   }
   const longURL = urlDatabase[req.params.shortURL].longURL;
   res.redirect(longURL);
@@ -133,17 +130,14 @@ app.post("/login", (req, res) => {
   const password = req.body.password;
 
   if (email === '' || password === '') {
-    res.status(400);
-    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n");
+    return res.status(400).send("<html><body>Cannot provide empty email or password.</body></html>\n");
   }
   const user = getUserByEmail(email, users);
   if (!user) {
-    res.status(403);
-    return res.send(`<html><body>User <b>${email}</b> does not exist.</body></html>\n`);
+    return res.status(403).send(`<html><body>User <b>${email}</b> does not exist.</body></html>\n`);
   }
   if (!bcrypt.compareSync(password, user.password)) {
-    res.status(403);
-    return res.send('<html><body>Invalid password.</body></html>\n');
+    return res.status(403).send('<html><body>Invalid password.</body></html>\n');
   }
 
   req.session.user_id = user.id;
@@ -160,13 +154,11 @@ app.post("/register", (req, res) => {
   const password = req.body.password;
 
   if (email === '' || password === '') {
-    res.status(400);
-    return res.send("<html><body>Cannot provide empty email or password.</body></html>\n");
+    return res.status(400).send("<html><body>Cannot provide empty email or password.</body></html>\n");
   }
 
   if (getUserByEmail(email, users)) {
-    res.status(400);
-    return res.send(`<html><body>Email <b>${email}</b> has already been registered.</body></html>\n`);
+    return res.status(400).send(`<html><body>Email <b>${email}</b> has already been registered.</body></html>\n`);
   }
   const id = generateRandomString();
   const hashPass = bcrypt.hashSync(password, 10);
@@ -182,8 +174,7 @@ app.post("/register", (req, res) => {
 
 app.post("/urls", (req, res) => {
   if (!req.session.user_id || !users[req.session.user_id]) {
-    res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
+    return res.status(400).send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   const shortKey = generateRandomString();
   urlDatabase[shortKey] = {
@@ -196,16 +187,13 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const shortURL = req.params.id;
   if (!req.session.user_id || !users[req.session.user_id]) {
-    res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
+    return res.status(400).send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
   }
   if (urlDatabase[shortURL].userID !== req.session.user_id) {
-    res.status(403);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+    return res.status(403).send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
   }
   if (req.session.user_id === urlDatabase[shortURL].userID) {
     delete urlDatabase[shortURL];
@@ -217,16 +205,13 @@ app.post("/urls/:id", (req, res) => {
   const shortURL = req.params.id;
   const id = req.session.user_id;
   if (!id || !users[id]) {
-    res.status(400);
-    return res.send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
+    return res.status(400).send(`<html><body>You must log in to access shortened URLs.</body></html>\n`);
   }
   if (!urlDatabase[shortURL]) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${shortURL}</b> does not exist in URL database.</body></html>\n`);
   }
   if (urlDatabase[shortURL].userID !== id) {
-    res.status(400);
-    return res.send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
+    return res.status(400).send(`<html><body>URL <b>${shortURL}</b> does not belong to you.</body></html>\n`);
   }
   
   if (id === urlDatabase[shortURL].userID) {
