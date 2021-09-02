@@ -40,7 +40,7 @@ const generateRandomString = () => {
   return output.join('');
 };
 
-const getUserFromDatabase = (email, db) => {
+const getUserByEmail = (email, db) => {
   for (let userId in db) {
     if (db[userId].email === email) {
       return db[userId];
@@ -169,7 +169,7 @@ app.post("/login", (req, res) => {
     res.status(400);
     return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
   }
-  const user = getUserFromDatabase(email, users);
+  const user = getUserByEmail(email, users);
   if (!user) {
     console.log(users);
     res.status(403);
@@ -200,7 +200,7 @@ app.post("/register", (req, res) => {
     return res.send("<html><body>Cannot provide empty email or password.</body></html>\n")
   }
 
-  if (getUserFromDatabase(email, users)) {
+  if (getUserByEmail(email, users)) {
     console.log(`User ${email} already exists!`);
     res.status(400);
     return res.send(`<html><body>Email <b>${email}</b> has already been registered.</body></html>\n`);
